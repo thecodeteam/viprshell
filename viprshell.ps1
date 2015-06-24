@@ -280,6 +280,28 @@ Param(
 }
 
 ####UI Services - Order####
+
+Function Get-ViPROrder{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$ID,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+    $uri = "https://"+$ViprIP+":4443/catalog/orders/$ID"
+
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+    $response
+
+}
 Function New-ViPRSnapshot-Order{
 [CmdletBinding()]
 Param(
@@ -789,4 +811,109 @@ Function Get-ViprErrorMsg([AllowNull()][object]$errordata){
     
    } 
   
+}
+
+Function Snap-And-Mount-Test{
+[CmdletBinding()]
+
+#This section defines variables - long term some persistence layer/SQL/PS will handle this - or you can add parameters to this script and load them in from somewhere else.
+$ProxyUsername = "proxyuser"
+$ProxyUserPassword = "EMCroot1!"
+$TokenPath = "C:\vipr\token"
+$VolumeToBeSnapped = "CHEXSQLEDW07_DATA6"
+$MountHost = "CHEXSQLNRT020"
+$SnapshotName = "DEMO_SNAP"
+$SnapHLU = "-1"
+$TenantName = "Provider Tenant"
+$ProjectName = "POC_NRT"
+$ViprIP = "10.185.55.135"
+$StorageType = "exclusive"
+$Attempts = 0
+
+###Authenticate the proxyuser
+
+New-ViprProxyUserAuthToken -ViprIP $ViprIP -TokenPath C:\vipr\token -ProxyUserName $ProxyUsername -ProxyUserPassword $ProxyUserPassword -Verbose
+
+###Take the snapshot
+WRite-Verbose "Taking the snapshot"
+$order = New-ViPRSnapshot-Order -ViprIP $ViprIP -VolumeName $VolumeToBeSnapped -SnapshotName $SnapshotName -TokenPath $TokenPath -TenantName $TenantName -ProjectName $ProjectName -Verbose
+
+
+###Monitor the status, wait until it's no longer running
+$status = "Pending"
+
+While($status -eq "Pending" -or $status -eq "Execute" -or $status -eq "Executing"){
+  $progress = (Get-ViPROrderStatus -ViprIP $ViprIP -OrderID $order.id -TokenPath $TokenPath)
+  $status = $progress.execution_status
+  $task = $progress.current_task
+  Write-Verbose "Current Status: $status"
+  Write-Verbose "Current Task: $task" 
+  Start-Sleep -Seconds 5
+}
+###Get the order, should return all of the things we need including the final status and new resource IDs
+If($status -eq "FAILED"){
+    Write-Error "Snapshot failed"
+    Get-ViPROrder -ViprIP $ViprIP -ID $order.id -TokenPath $TokenPath
+    Exit
+}
+
+
+#Return the order and don't quit
+Write-Verbose "Snapshot Completed Successfuly"
+Get-ViPROrder -ViprIP $ViprIP -ID $order.id -TokenPath $TokenPath
+
+###Once complete, Map to target
+Write-Verbose "Mapping to target Host"
+$order = Export-ViPRSnapshot-Order -ViprIP $ViprIP -SnapshotName $SnapshotName -TokenPath $TokenPath -HostName $MountHost -TenantName $TenantName -ProjectName $ProjectName -HLU $SnapHLU -StorageType $StorageType -Verbose
+
+
+###Monitor the status, wait until it's no longer running
+$status = "Pending"
+
+While($status -eq "Pending" -or $status -eq "Execute" -or $status -eq "Executing"){
+  $progress = (Get-ViPROrderStatus -ViprIP $ViprIP -OrderID $order.id -TokenPath $TokenPath)
+  $status = $progress.execution_status
+  $task = $progress.current_task
+  Write-Verbose "Current Status: $status"
+  Write-Verbose "Current Task: $task" 
+  Start-Sleep -Seconds 5
+}
+###Get the order, should return all of the things we need including the final status and new resource IDs. Exit if failed
+
+If($status -eq "FAILED"){
+    Write-Error "Snapshot failed"
+    Get-ViPROrder -ViprIP $ViprIP -ID $order.id -TokenPath $TokenPath
+    Exit
+}
+
+#Return the order info
+Write-Verbose "Map to target completed successfully"
+Get-ViPROrder -ViprIP $ViprIP -ID $order.id -TokenPath $TokenPath
+
+#Mount it to the desired host
+Write-Verbose "Mounting to desired host"
+$order = Mount-ViPRWindowsVolume-Order -ViprIP $ViprIP -SnapshotName $SnapshotName -TokenPath $TokenPath -HostName $MountHost -TenantName $TenantName -ProjectName $ProjectName -StorageType $StorageType -PartitionType gpt -FileSystemType ntfs -Verbose
+
+###Get the order, should return all of the things we need including the final status and new resource IDs. Exit if failed
+
+If($status -eq "FAILED"){
+    Write-Error "Snapshot failed"
+    Get-ViPROrder -ViprIP $ViprIP -ID $order.id -TokenPath $TokenPath
+    Exit
+}
+
+While($status -eq "Pending" -or $status -eq "Execute" -or $status -eq "Executing"){
+  $progress = (Get-ViPROrderStatus -ViprIP $ViprIP -OrderID $order.id -TokenPath $TokenPath)
+  $status = $progress.execution_status
+  $task = $progress.current_task
+  Write-Verbose "Current Status: $status"
+  Write-Verbose "Current Task: $task" 
+  Start-Sleep -Seconds 5
+}
+
+#Return the order info
+Write-Verbose "Mount completed successfully"
+Write-Verbose "Snap and Mount process completed!"
+Get-ViPROrder -ViprIP $ViprIP -ID $order.id -TokenPath $TokenPath
+
 }
