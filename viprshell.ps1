@@ -257,19 +257,19 @@ Param(
     "tenantId": "'+$TenantID+'",
     "parameters": [
         {
-          "label": "Project",
+          "label": "project",
           "value": "'+$ProjectID+'"
         },
         {
-          "label": "Volume",
+          "label": "volume",
           "value": "'+$VolumeID+'"
         },
         {
-          "label": "Type",
+          "label": "type",
           "value": "Local Array Snapshot"
         },
         {
-          "label": "Name",
+          "label": "name",
           "value": "'+$SnapshotName+'"
         }
 
@@ -325,23 +325,23 @@ Param(
     "tenantId": "'+$TenantID+'",
     "parameters": [
         {
-          "label": "Storage Type",
+          "label": "storageType",
           "value": "'+$StorageType+'"
         },
         {
-          "label": "Host",
+          "label": "host",
           "value": "'+$HostID+'"
         },
         {
-          "label": "Project",
+          "label": "project",
           "value": "'+$ProjectID+'"
         },
         {
-          "label": "Snapshot",
+          "label": "snapshot",
           "value": "'+$SnapshotID+'"
         },
         {
-          "label": "HLU",
+          "label": "hlu",
           "value": "'+$HLU+'"
 
         }
