@@ -173,6 +173,60 @@ Param(
 
 }
 
+###Catalog SErvice###
+Function Get-ViprCatalogServiceInfo{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$CatalogID,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+    $uri = "https://"+$ViprIP+":4443/catalog/services/$CatalogID"
+
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+  
+ 
+
+    $response.resource | Where match -eq $Name | Select
+
+
+}
+
+Function Get-ViprExportGroup{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$Name,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+    $uri = "https://"+$ViprIP+":4443/block/exports/search?name=$Name"
+
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+  
+ 
+
+    $response.resource 
+
+
+}
+
+
 ####Block Services####
 Function Get-ViPRVolume{
 [CmdletBinding()]
@@ -244,7 +298,7 @@ Param(
 )
 
  $uri = "https://"+$ViprIP+":4443/catalog/orders"
- $CatalogID = (Get-ViPRCatalogServiceID -TokenPath $TokenPath -ViprIP $ViprIP -Name "CreateBlockSnapshot").id
+ $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "CreateBlockSnapshot").id
  $VolumeID = (Get-ViPRVolume -TokenPath $TokenPath -ViprIP $ViprIP -Name $VolumeName).id
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
  $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
@@ -253,7 +307,8 @@ Param(
  Write-Verbose "TenantID is $TenantID"
  Write-Verbose "ProjectID is $ProjectID"
 
-    $jsonbody = '{
+    $jsonbody = '
+    {
     "tenantId": "'+$TenantID+'",
     "parameters": [
         {
@@ -261,12 +316,12 @@ Param(
           "value": "'+$ProjectID+'"
         },
         {
-          "label": "volume",
+          "label": "volumes",
           "value": "'+$VolumeID+'"
         },
         {
           "label": "type",
-          "value": "Local Array Snapshot"
+          "value": "local"
         },
         {
           "label": "name",
@@ -274,17 +329,73 @@ Param(
         }
 
     ],
-     "catalog_service": "'+$CatalogID+'"}'
-    
-    $body = $jsonbody | ConvertFrom-Json
+     "catalog_service": "'+$CatalogID+'"
+   }'
 
     
+ 
+    $body = $jsonbody |ConvertFrom-Json
+
     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-    $response = Invoke-RestMethod -Uri $uri -Method POST -Body $body -Headers $headers -ContentType "application/json"
-    
+  
+     $response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
+     $response
+  
 
+}
+
+Function Remove-ViprSnapshot-Order{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$SnapshotName,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath,
+  [Parameter(Mandatory=$true)]
+  [string]$TenantName,
+  [Parameter(Mandatory=$true)]
+  [string]$ProjectName
+ 
+)
+
+ $uri = "https://"+$ViprIP+":4443/catalog/orders"
+ $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "RemoveBlockSnapshot").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
+ $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+ Write-Verbose "Catalog ID is $CatalogID"
+ Write-Verbose "VolumeID is $VolumeID"
+ Write-Verbose "TenantID is $TenantID"
+ Write-Verbose "ProjectID is $ProjectID"
+
+    $jsonbody = '
+    {
+    "tenantId": "'+$TenantID+'",
+    "parameters": [
+        {
+          "label": "project",
+          "value": "'+$ProjectID+'"
+        },
+        {
+          "label": "snapshots",
+          "value": "'+$SnapshotID+'"
+        }
+
+    ],
+     "catalog_service": "'+$CatalogID+'"
+   }'
+
+
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+  
+     $response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
+     $response
 }
 
 Function Export-ViPRSnapshot-Order{
@@ -305,11 +416,11 @@ Param(
   [Parameter(Mandatory=$true)]
   [string]$HLU,
   [Parameter(Mandatory=$true)]
-  [ValidateSet('Exclusive','Shared')]
+  [ValidateSet('exclusive','shared')]
   [string]$StorageType
 )
 
- $CatalogID = (Get-ViPRCatalogServiceID -TokenPath $TokenPath -ViprIP $ViprIP -Name "ExportSnapshottoaHost").id
+ $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "ExportSnapshottoaHost").id
  $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
  $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
@@ -321,7 +432,8 @@ Param(
  Write-Verbose "Project ID is $ProjectID"
 
  $uri = "https://"+$ViprIP+":4443/catalog/orders"
- $jsonbody = '{
+ $jsonbody = '
+ {
     "tenantId": "'+$TenantID+'",
     "parameters": [
         {
@@ -337,7 +449,7 @@ Param(
           "value": "'+$ProjectID+'"
         },
         {
-          "label": "snapshot",
+          "label": "snapshots",
           "value": "'+$SnapshotID+'"
         },
         {
@@ -350,30 +462,242 @@ Param(
      "catalog_service": "'+$CatalogID+'"}'
     
     
-    $body = $jsonbody | ConvertFrom-Json
     
     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-  $result = try{ 
-        $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -Headers $headers -ContentType "application/json"
-        $response
-    }
-    catch{
-        $error = (Get-ViprErrorMsg -errordata  $result) 
-        Write-Error $error
 
-    }
+        $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
+        $response
+    
 }
 
 Function Unexport-ViPRSnapshot-Order{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$SnapshotName,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath,
+  [Parameter(Mandatory=$true)]
+  [string]$HostName,
+  [Parameter(Mandatory=$true)]
+  [string]$TenantName,
+  [Parameter(Mandatory=$true)]
+  [string]$ProjectName
+ 
+)
 
+ $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "UnexportSnapshot").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
+ $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $ExportID = (Get-ViprExportGroup -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
+ $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+ Write-Verbose "Catalog ID is $CatalogID"
+ Write-Verbose "Snapshot ID is $SnapshotID"
+ Write-Verbose "TenantID is $TenantID"
+ Write-Verbose "Host ID is $HostID"
+ Write-Verbose "Project ID is $ProjectID"
+
+ $uri = "https://"+$ViprIP+":4443/catalog/orders"
+ $jsonbody = '
+ {
+    "tenantId": "'+$TenantID+'",
+    "parameters": [
+        {
+          "label": "export",
+          "value": "'+$ExportID+'"
+        },
+        {
+          "label": "project",
+          "value": "'+$ProjectID+'"
+        },
+        {
+          "label": "snapshot",
+          "value": "'+$SnapshotID+'"
+        }
+    ],
+     "catalog_service": "'+$CatalogID+'"}'
+    
+    
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+
+        $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
+        $response
 
 }
 
-Function Remove-ViPRSnapshot-Order{
+Function Mount-ViPRWindowsVolume-Order{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$SnapshotName,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath,
+  [Parameter(Mandatory=$true)]
+  [string]$HostName,
+  [Parameter(Mandatory=$true)]
+  [string]$TenantName,
+  [Parameter(Mandatory=$true)]
+  [string]$ProjectName,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet('exclusive','shared')]
+  [string]$StorageType,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet('gpt','mbr')]
+  [string]$PartitionType,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet('ntfs','fat32')]
+  [string]$FileSystemType,
+  [Parameter()]
+  [string]$DriveLabel =" ",
+  [Parameter()]
+  [string]$MountPoint=" "
+)
 
+ $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "MountVolumeOnWindows").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
+ $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
+ $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+ Write-Verbose "Catalog ID is $CatalogID"
+ Write-Verbose "Snapshot ID is $SnapshotID"
+ Write-Verbose "TenantID is $TenantID"
+ Write-Verbose "Host ID is $HostID"
+ Write-Verbose "Project ID is $ProjectID"
+
+ $uri = "https://"+$ViprIP+":4443/catalog/orders"
+ $jsonbody = '
+ {
+    "tenantId": "'+$TenantID+'",
+    "parameters": [
+        {
+          "label": "blockStorageType",
+          "value": "'+$StorageType+'"
+        },
+        {
+          "label": "host",
+          "value": "'+$HostID+'"
+        },
+        {
+          "label": "project",
+          "value": "'+$ProjectID+'"
+        },
+        {
+          "label": "volume",
+          "value": "'+$SnapshotID+'"
+        },
+        {
+          "label": "fileSystemType",
+          "value": "'+$FileSystemType+'"
+        },
+        {
+          "label": "doFormat",
+          "value": "false"
+        },
+        {
+          "label": "partitionType",
+          "value": "'+$PartitionType+'"
+        },
+        {
+          "label": "blockSize",
+          "value": "default"
+        },
+        {
+          "label": "mountPoint",
+          "value": "'+$MountPoint+'"
+        },
+        {
+          "label": "label",
+          "value": "'+$DriveLabel+'"
+        }        
+    ],
+     "catalog_service": "'+$CatalogID+'"}'
+    
+    
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+
+        $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
+        $response
+    
 }
+
+Function Unmount-ViPRWindowsVolume-Order{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$SnapshotName,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath,
+  [Parameter(Mandatory=$true)]
+  [string]$HostName,
+  [Parameter(Mandatory=$true)]
+  [string]$TenantName,
+  [Parameter(Mandatory=$true)]
+  [string]$ProjectName,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet('exclusive','shared')]
+  [string]$StorageType
+)
+
+ $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "MountVolumeOnWindows").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
+ $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
+ $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+ Write-Verbose "Catalog ID is $CatalogID"
+ Write-Verbose "Snapshot ID is $SnapshotID"
+ Write-Verbose "TenantID is $TenantID"
+ Write-Verbose "Host ID is $HostID"
+ Write-Verbose "Project ID is $ProjectID"
+
+ $uri = "https://"+$ViprIP+":4443/catalog/orders"
+ $jsonbody = '
+ {
+    "tenantId": "'+$TenantID+'",
+    "parameters": [
+        {
+          "label": "blockStorageType",
+          "value": "'+$StorageType+'"
+        },
+        {
+          "label": "host",
+          "value": "'+$HostID+'"
+        },
+        {
+          "label": "project",
+          "value": "'+$ProjectID+'"
+        },
+        {
+          "label": "volume",
+          "value": "'+$SnapshotID+'"
+        }        
+    ],
+     "catalog_service": "'+$CatalogID+'"}'
+    
+    
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+
+        $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
+        $response
+    
+}
+
 
 Function Get-ViPROrderStatus{
 [CmdletBinding()]
@@ -393,11 +717,8 @@ Param(
     
     
     $status = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+    $status
     
- 
-
-
-
 }
 
 ####UI Services - Catalog Services####
