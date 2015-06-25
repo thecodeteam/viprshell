@@ -116,7 +116,13 @@ Param(
   
  
 
-    $response.resource | Where match -eq $Name | Select
+    $id = ($response.resource | Where match -eq $Name | Select).id
+
+    $uri = "https://"+$ViprIP+":4443/tenants/$id"
+
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+    $response
 
 }
 
@@ -141,7 +147,13 @@ Param(
   
  
 
-    $response.resource | Where match -eq $Name | Select
+    $id = ($response.resource | Where match -eq $Name | Select).id
+
+    $uri = "https://"+$ViprIP+":4443/projects/$id"
+
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+    $response
 
 
 }
@@ -168,7 +180,13 @@ Param(
   
  
 
-    $response.resource | Where match -eq $Name | Select
+    $id = ($response.resource | Where match -eq $Name | Select).id
+
+    $uri = "https://"+$ViprIP+":4443/compute/hosts/$id"
+
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+    $response
 
 
 }
@@ -221,7 +239,13 @@ Param(
   
  
 
-    $response.resource 
+    $id = ($response.resource).id
+
+    $uri = "https://"+$ViprIP+":4443/block/exports/$id"
+
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+    $response 
 
 
 }
@@ -249,7 +273,13 @@ Param(
   
  
 
-    $response.resource | Where match -eq $Name | Select
+    $id = ($response.resource | Where match -eq $Name | Select).id
+
+    $uri = "https://"+$ViprIP+":4443/block/volumes/$id"
+
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+    $response
 }
 
 ####Snapshot Services####
@@ -274,7 +304,13 @@ Param(
   
  
 
-    $response.resource | Where match -eq $Name | Select
+    $id = ($response.resource | Where match -eq $Name | Select).id
+
+    $uri = "https://"+$ViprIP+":4443/block/snapshots/$id"
+
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+    $response
 
 
 }
@@ -355,8 +391,6 @@ Param(
    }'
 
     
- 
-    $body = $jsonbody |ConvertFrom-Json
 
     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
@@ -791,6 +825,7 @@ Function Get-AuthHeader([string]$username,[string]$password){
  
 }
 
+#Can be used to determine API errors
 Function Get-ViprErrorMsg([AllowNull()][object]$errordata){   
     $ed = $errordata
     
