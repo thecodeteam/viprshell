@@ -356,9 +356,9 @@ Param(
 )
 
  $uri = "https://"+$ViprIP+":4443/catalog/orders"
- $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "CreateBlockSnapshot").id
- $VolumeID = (Get-ViPRVolume -TokenPath $TokenPath -ViprIP $ViprIP -Name $VolumeName).id
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "CreateBlockSnapshot").id
+ $VolumeID = (Get-ViPRVolume -TokenPath $TokenPath -ViprIP $ViprIP -Name $VolumeName).id
  $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
  Write-Verbose "Catalog ID is $CatalogID"
  Write-Verbose "VolumeID is $VolumeID"
@@ -419,9 +419,9 @@ Param(
 )
 
  $uri = "https://"+$ViprIP+":4443/catalog/orders"
- $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "RemoveBlockSnapshot").id
- $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -TenantID $TenantID -ViprIP $ViprIP -Name "RemoveBlockSnapshot").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
  Write-Verbose "Catalog ID is $CatalogID"
  Write-Verbose "VolumeID is $VolumeID"
@@ -475,10 +475,9 @@ Param(
   [ValidateSet('exclusive','shared')]
   [string]$StorageType
 )
-
- $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "ExportSnapshottoaHost").id
- $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "ExportSnapshottoaHost").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
  $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
  Write-Verbose "Catalog ID is $CatalogID"
@@ -545,10 +544,9 @@ Param(
   [string]$ProjectName
  
 )
-
- $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "UnexportSnapshot").id
- $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "UnexportSnapshot").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $ExportID = (Get-ViprExportGroup -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
  $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
  Write-Verbose "Catalog ID is $CatalogID"
@@ -617,10 +615,9 @@ Param(
   [Parameter()]
   [string]$MountPoint=" "
 )
-
- $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "MountVolumeOnWindows").id
- $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "MountVolumeOnWindows").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
  $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
  Write-Verbose "Catalog ID is $CatalogID"
@@ -707,10 +704,9 @@ Param(
   [ValidateSet('exclusive','shared')]
   [string]$StorageType
 )
-
- $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -ViprIP $ViprIP -Name "MountVolumeOnWindows").id
- $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "UnmountVolumeOnWindows").id
+ $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
  $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
  $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
  Write-Verbose "Catalog ID is $CatalogID"
@@ -733,16 +729,11 @@ Param(
           "value": "'+$HostID+'"
         },
         {
-          "label": "project",
-          "value": "'+$ProjectID+'"
-        },
-        {
-          "label": "volume",
+          "label": "volumes",
           "value": "'+$SnapshotID+'"
         }        
     ],
      "catalog_service": "'+$CatalogID+'"}'
-    
     
     
     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
@@ -786,7 +777,9 @@ Function Get-ViPRCatalogService{
  [Parameter(Mandatory=$true)]
  [string]$TokenPath,
  [Parameter(Mandatory=$true)]
- [string]$Name
+ [string]$Name,
+ [Parameter(Mandatory=$true)]
+ [string]$TenantID
  )
 
  $uri = "https://"+$ViprIP+":4443/catalog/services/search?name=$Name"
@@ -795,11 +788,30 @@ Function Get-ViPRCatalogService{
     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+    $catalogservices = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
   
  
 
-    $response.resource | Where match -eq $Name | Select
+    $catalogservices.resource | ForEach-Object{
+        $href = $_.link.href
+       
+        $serviceuri = "https://"+$ViprIP+":4443$href"
+       
+        $response = Invoke-RestMethod -Uri $serviceuri -Method GET -Headers $headers -ContentType "application/json"
+        
+        $categoryhref = $response.catalog_category.link.href
+        $categoryuri = "https://"+$ViprIP+":4443$categoryhref"
+        
+
+        $response = Invoke-RestMethod -Uri $categoryuri -Method GET -Headers $headers -ContentType "application/json"
+        
+        if($response.tenant.id -eq $TenantID){
+             return $_
+            
+        }
+
+        
+    }
 
 }
 
