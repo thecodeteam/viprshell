@@ -191,32 +191,6 @@ Param(
 
 }
 
-###Catalog SErvice###
-Function Get-ViprCatalogServiceInfo{
-[CmdletBinding()]
-Param(
-  [Parameter(Mandatory=$true)]
-  [string]$ViprIP,
-  [Parameter(Mandatory=$true)]
-  [string]$CatalogID,
-  [Parameter(Mandatory=$true)]
-  [string]$TokenPath
-)
-
-    $uri = "https://"+$ViprIP+":4443/catalog/services/$CatalogID"
-
-    
-    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
-    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
-    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
-  
- 
-
-    $response.resource | Where match -eq $Name | Select
-
-
-}
 
 Function Get-ViprExportGroup{
 [CmdletBinding()]
