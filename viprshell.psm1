@@ -17,6 +17,8 @@ add-type @"
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
 ####Token Generation####
+
+#Creates the proxy token - this will be a one-time setup typically
 Function New-ViPR-Proxy-Token{
 [Cmdletbinding()]
 
@@ -56,7 +58,7 @@ Param(
 
 
 }
-
+#Authenticates the proxy user using the proxy token that was already created
 Function New-ViprProxyUserAuthToken{
  [Cmdletbinding()]
  Param(
@@ -112,17 +114,28 @@ Param(
     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+    
+    $result = try {
+                     $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
   
- 
+                     $id = ($response.resource | Where match -eq $Name | Select).id
 
-    $id = ($response.resource | Where match -eq $Name | Select).id
+                     #Uses bogus ID if no match was found to trigger error
+                     if(!$id){
+                     $id = "13413FAILEDPLACEHOLDER1341313"
+                     }
 
-    $uri = "https://"+$ViprIP+":4443/tenants/$id"
+                     $uri = "https://"+$ViprIP+":4443/tenants/$id"
 
-    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+                     $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
 
-    $response
+                     $response
+                   }
+                catch{
+                $_.Exception.Response
+
+                }
+            $result
 
 }
 
@@ -173,22 +186,36 @@ Param(
 
     $uri = "https://"+$ViprIP+":4443/compute/hosts/search?name=$Name"
 
-    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
-    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
-    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
-  
+
+
+        $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+        $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+        $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+        
+    $result = try{ 
+    
+                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+        
+                    $id = ($response.resource | Where match -eq $Name | Select).id
+
+                     #Uses bogus ID if no match was found to trigger error
+                    if(!$id){
+                    $id = "13413FAILEDPLACEHOLDER1341313"
+                    }
+                    
+                    $uri = "https://"+$ViprIP+":4443/compute/hosts/$id"
+
+                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+                    $response
+                }
+            catch{
+
+                $_.Exception.Response
+            }
+
+         $result
  
-
-    $id = ($response.resource | Where match -eq $Name | Select).id
-
-    $uri = "https://"+$ViprIP+":4443/compute/hosts/$id"
-
-    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
-
-    $response
-
-
 }
 
 
@@ -247,7 +274,7 @@ Param(
   
  
 
-    $id = ($response.resource | Where match -eq $Name | Select).id
+    $id = ($response.resource | Where match -eq $Name | Select id)
 
     $uri = "https://"+$ViprIP+":4443/block/volumes/$id"
 
@@ -256,7 +283,36 @@ Param(
     $response
 }
 
+#Returns array of Volume objects 
+Function Get-ViPRVolumes{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+    $object = @()
+    $uri = "https://"+$ViprIP+":4443/block/volumes/bulk"
+
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+   
+ 
+     $response | ForEach-Object{ 
+        $id = ($response.resource | Where match -eq $Name | Select).id
+        $uri = "https://"+$ViprIP+":4443/block/volumes/$id"
+        $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+        $object += $response
+    }
+    $object
+}
+
 ####Snapshot Services####
+#Gets Snapshot information based on a name 
 Function Get-ViPRSnapshot{
 [CmdletBinding()]
 Param(
@@ -289,8 +345,123 @@ Param(
 
 }
 
+#Gets all Snapshot information 
+Function Get-ViPRSnapshots{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$ParentVolumeName,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+  $relatedsnaps = @()
+  $parentvolume = (Get-ViPRVolume -TokenPath $TokenPath -ViprIP $ViprIP -Name $VolumeName)
+
+    $uri = "https://"+$ViprIP+":4443/block/snapshots/bulk"
+
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+   
+ 
+     $response | ForEach-Object{ 
+        $id = ($response.resource | Where match -eq $Name | Select).id
+        $uri = "https://"+$ViprIP+":4443/block/snapshots/$id"
+        $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+        if($response.parent.id -eq $parentvolume.id){
+        $relatedsnaps += $response
+        }
+    }
+
+    $relatedsnaps
+
+}
+
+#Gets Tags for a Snapshot
+Function Get-ViPRSnapshotTags{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$SnapshotName,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+  $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
+  $uri = "https://"+$ViprIP+":4443/block/snapshots/$SnapshotID/tags"
+
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+  
+  $response
+
+}
+
+#Gets Tags for a Snapshot
+Function Set-ViPRSnapshotTag{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$SnapshotName,
+  [Parameter(Mandatory=$true)]
+  [string]$Tag,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet('Add','Remove')]
+  [string]$Action,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+  $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
+  $uri = "https://"+$ViprIP+":4443/block/snapshots/$SnapshotID/tags"
+  if($Action -eq 'Add'){
+     
+      $jsonbody = '
+       {
+        "add": [
+          "'+$Tag+'"
+        ],
+        "remove": [
+          ""
+        ]
+      }'
+  }
+  elseif($Action -eq 'Remove'){
+      $jsonbody = '
+       {
+        "add": [
+          ""
+        ],
+        "remove": [
+          "'+$Tag+'"
+        ]
+      }'
+
+  }
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method PUT -Body $jsonbody -Headers $headers -ContentType "application/json"
+  
+  $response
+
+}
 ####UI Services - Order####
 
+#Returns the order information given an order ID which will show status 
 Function Get-ViPROrder{
 [CmdletBinding()]
 Param(
@@ -719,7 +890,7 @@ Param(
     
 }
 
-
+#Checks order status until it has a successful or failure state, then returns the order information
 Function Get-ViPROrderStatus{
 [CmdletBinding()]
 Param(
@@ -731,14 +902,26 @@ Param(
   [string]$TokenPath
 )
 
-    $uri = "https://"+$ViprIP+":4443/catalog/orders/$OrderID/execution"
-    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
-    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
-    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-    
-    
-    $status = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
-    $status
+     ###Monitor the status, wait until it's no longer running
+    $status = "Pending"
+
+    While($status -eq "Pending" -or $status -eq "Execute" -or $status -eq "Executing"){
+      $progress = (Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath)
+      $status = $progress.order_status
+  
+      Write-Verbose "Current Status: $status"
+  
+      Start-Sleep -Seconds 5
+    }
+    ###Get the order, should return all of the things we need including the final status and new resource IDs
+    If($status -eq "FAILED" -or $status -eq "ERROR"){
+        Write-Error "Snapshot failed"
+        Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath
+    }
+
+    #Return the order, it completed
+    Write-Verbose "Snapshot Completed Successfuly"
+    Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath
     
 }
 
@@ -790,13 +973,6 @@ Function Get-ViPRCatalogService{
 }
 
 
-
-
-
-
-
-
-
 ####Helpers####
 
 #Generates Basic Auth base64 header
@@ -812,7 +988,7 @@ Function Get-AuthHeader([string]$username,[string]$password){
 }
 
 #Can be used to determine API errors
-Function Get-ViprErrorMsg([AllowNull()][object]$errordata){   
+Function Get-ViPRErrorMsg([AllowNull()][object]$errordata){   
     $ed = $errordata
     
   try{ 
@@ -828,7 +1004,7 @@ Function Get-ViprErrorMsg([AllowNull()][object]$errordata){
     }
    catch{
     Write-Host ""
-    Write-Host -ForegroundColor Red "Probably Auth error"
+    Write-Host -ForegroundColor Red "Possible authentication or IP resolution error."
     
    } 
   
