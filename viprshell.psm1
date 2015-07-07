@@ -211,7 +211,7 @@ Param(
                 }
             catch{
 
-                $_.Exception.Response
+                Write-Error (Get-ViPRErrorMsg -errordata $result)
             }
 
          $result
@@ -274,7 +274,7 @@ Param(
   
  
 
-    $id = ($response.resource | Where match -eq $Name | Select id)
+    $id = ($response.resource | Where match -eq $Name | Select).id
 
     $uri = "https://"+$ViprIP+":4443/block/volumes/$id"
 
@@ -303,12 +303,83 @@ Param(
    
  
      $response | ForEach-Object{ 
-        $id = ($response.resource | Where match -eq $Name | Select).id
+        $id = $_.id
         $uri = "https://"+$ViprIP+":4443/block/volumes/$id"
         $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
         $object += $response
     }
     $object
+}
+
+#Gets Tags for a Snapshot
+Function Get-ViPRVolumeTags{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$VolumeName,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+  $VolumeID = (Get-ViPRVolume -TokenPath $TokenPath -ViprIP $ViprIP -Name $VolumeName).id
+  $uri = "https://"+$ViprIP+":4443/block/volumes/$VolumeID/tags"
+
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+  
+  $response
+
+}
+
+#Gets Tags for a Snapshot
+Function Set-ViPRVolumeTag{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$VolumeName,
+  [Parameter(Mandatory=$true)]
+  [string]$Tag,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet('Add','Remove')]
+  [string]$Action,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+  $VolumeID = (Get-ViPRVolume -TokenPath $TokenPath -ViprIP $ViprIP -Name $VolumeName).id
+  $uri = "https://"+$ViprIP+":4443/block/volumes/$VolumeID/tags"
+  if($Action -eq 'Add'){
+     
+      $jsonbody = '
+       {
+        "add": [
+          "'+$Tag+'"
+        ]
+      }'
+  }
+  elseif($Action -eq 'Remove'){
+      $jsonbody = '
+       {
+        "remove": [
+          "'+$Tag+'"
+        ]
+      }'
+
+  }
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    $response = Invoke-RestMethod -Uri $uri -Method PUT -Body $jsonbody -Headers $headers -ContentType "application/json"
+  
+  $response
+
 }
 
 ####Snapshot Services####
@@ -345,7 +416,7 @@ Param(
 
 }
 
-#Gets all Snapshot information 
+#Gets all snapshots related to a parent volume
 Function Get-ViPRSnapshots{
 [CmdletBinding()]
 Param(
@@ -370,7 +441,7 @@ Param(
    
  
      $response | ForEach-Object{ 
-        $id = ($response.resource | Where match -eq $Name | Select).id
+        $id = $_.id
         $uri = "https://"+$ViprIP+":4443/block/snapshots/$id"
         $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
         if($response.parent.id -eq $parentvolume.id){
@@ -432,18 +503,12 @@ Param(
        {
         "add": [
           "'+$Tag+'"
-        ],
-        "remove": [
-          ""
         ]
       }'
   }
   elseif($Action -eq 'Remove'){
       $jsonbody = '
        {
-        "add": [
-          ""
-        ],
         "remove": [
           "'+$Tag+'"
         ]
@@ -995,7 +1060,7 @@ Function Get-ViPRErrorMsg([AllowNull()][object]$errordata){
     $ed = $_.Exception.Response.GetResponseStream()
     $reader = New-Object System.IO.StreamReader($ed)
     $responseBody = $reader.ReadToEnd(); 
-    $errorcontent = $responseBody | ConvertFrom-Json
+    $errorcontent = $responseBody
     $errormsg = $errorcontent.message
 
     Write-Host -ForegroundColor Red $errormsg
