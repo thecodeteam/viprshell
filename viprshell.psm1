@@ -739,39 +739,51 @@ Param(
 )
 
  $uri = "https://"+$ViprIP+":4443/catalog/orders"
- $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
- $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -TenantID $TenantID -ViprIP $ViprIP -Name "RemoveBlockSnapshot").id
- $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
- $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
- Write-Verbose "Catalog ID is $CatalogID"
- Write-Verbose "VolumeID is $VolumeID"
- Write-Verbose "TenantID is $TenantID"
- Write-Verbose "ProjectID is $ProjectID"
+ 
+ $result = try {
 
-    $jsonbody = '
-    {
-    "tenantId": "'+$TenantID+'",
-    "parameters": [
-        {
-          "label": "project",
-          "value": "'+$ProjectID+'"
-        },
-        {
-          "label": "snapshots",
-          "value": "'+$SnapshotID+'"
-        }
+                 $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+                 if($TenantID){
+                    $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -TenantID $TenantID -ViprIP $ViprIP -Name "RemoveBlockSnapshot").id
+                 }
+                 $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
+                 $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+                 Write-Verbose "Catalog ID is $CatalogID"
+                 Write-Verbose "VolumeID is $VolumeID"
+                 Write-Verbose "TenantID is $TenantID"
+                 Write-Verbose "ProjectID is $ProjectID"
 
-    ],
-     "catalog_service": "'+$CatalogID+'"
-   }'
+                    $jsonbody = '
+                    {
+                    "tenantId": "'+$TenantID+'",
+                    "parameters": [
+                        {
+                          "label": "project",
+                          "value": "'+$ProjectID+'"
+                        },
+                        {
+                          "label": "snapshots",
+                          "value": "'+$SnapshotID+'"
+                        }
+
+                    ],
+                     "catalog_service": "'+$CatalogID+'"
+                   }'
 
 
-    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
-    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
-    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-  
-     $response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
-     $response
+                    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+                    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+                    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+                    if($TenantID -and $CatalogID -and $SnapshotID -and $ProjectID){
+                         $response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
+                         $response
+                    }
+               }
+            catch{
+
+              Write-Error (Get-ViPRErrorMsg -errordata $result)
+            }
+    $result
 }
 
 Function Export-ViPRSnapshot-Order{
