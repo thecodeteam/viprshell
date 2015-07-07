@@ -194,11 +194,17 @@ Param(
   [Parameter(Mandatory=$true)]
   [string]$Name,
   [Parameter(Mandatory=$true)]
-  [string]$TokenPath
+  [string]$TokenPath,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet('Cluster','Standalone')]
+  [string]$HostType
 )
-
+    if($HostType -eq 'Standalone'){
     $uri = "https://"+$ViprIP+":4443/compute/hosts/search?name=$Name"
-
+    }
+    else{
+    $uri = "https://"+$ViprIP+":4443/compute/clusters/search?name=$Name"
+    }
 
 
         $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
@@ -216,8 +222,12 @@ Param(
                     $id = "$Name"
                     }
                     
+                    if($HostType -eq 'Standalone'){
                     $uri = "https://"+$ViprIP+":4443/compute/hosts/$id"
-
+                    }
+                    else{
+                    $uri = "https://"+$ViprIP+":4443/compute/clusters/$id"
+                    }
                     $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
 
                     $response
@@ -807,55 +817,68 @@ Param(
   [ValidateSet('exclusive','shared')]
   [string]$StorageType
 )
- $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
- $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "ExportSnapshottoaHost").id
- $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
- $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
- $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
- Write-Verbose "Catalog ID is $CatalogID"
- Write-Verbose "Snapshot ID is $SnapshotID"
- Write-Verbose "TenantID is $TenantID"
- Write-Verbose "Host ID is $HostID"
- Write-Verbose "Project ID is $ProjectID"
+  if($StorageType -eq 'exclusive'){
+  $HostType = 'Standalone'
+  }
+  else{
+  $HostType = 'Cluster'
+  }
+  $result = try {
 
- $uri = "https://"+$ViprIP+":4443/catalog/orders"
- $jsonbody = '
- {
-    "tenantId": "'+$TenantID+'",
-    "parameters": [
-        {
-          "label": "storageType",
-          "value": "'+$StorageType+'"
-        },
-        {
-          "label": "host",
-          "value": "'+$HostID+'"
-        },
-        {
-          "label": "project",
-          "value": "'+$ProjectID+'"
-        },
-        {
-          "label": "snapshots",
-          "value": "'+$SnapshotID+'"
-        },
-        {
-          "label": "hlu",
-          "value": "'+$HLU+'"
+                 $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+                 if($TenantID){
+                 $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "ExportSnapshottoaHost").id
+                 }
+                 $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
+                 $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName -HostType $HostType).id
+                 $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+ 
 
-        }
+                 $uri = "https://"+$ViprIP+":4443/catalog/orders"
+                 $jsonbody = '
+                 {
+                    "tenantId": "'+$TenantID+'",
+                    "parameters": [
+                        {
+                          "label": "storageType",
+                          "value": "'+$StorageType+'"
+                        },
+                        {
+                          "label": "host",
+                          "value": "'+$HostID+'"
+                        },
+                        {
+                          "label": "project",
+                          "value": "'+$ProjectID+'"
+                        },
+                        {
+                          "label": "snapshots",
+                          "value": "'+$SnapshotID+'"
+                        },
+                        {
+                          "label": "hlu",
+                          "value": "'+$HLU+'"
 
-    ],
-     "catalog_service": "'+$CatalogID+'"}'
+                        }
+
+                    ],
+                     "catalog_service": "'+$CatalogID+'"}'
     
     
     
-    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
-    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
-    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+                    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+                    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+                    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+                     if($TenantID -and $HostID -and $CatalogID -and $SnapshotID -and $ProjectID){
+                        $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
+                        $response
+                    }
+                }
+           catch{
 
-        $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
-        $response
+                Write-Error (Get-ViPRErrorMsg -errordata $result)
+           }
+    $result
     
 }
 
@@ -947,10 +970,18 @@ Param(
   [Parameter()]
   [string]$MountPoint=" "
 )
+
+if($StorageType -eq 'exclusive'){
+  $HostType = 'Standalone'
+  }
+  else{
+  $HostType = 'Cluster'
+  }
+
  $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
  $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "MountVolumeOnWindows").id
  $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
- $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
+ $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName -HostType $HostType).id
  $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
  Write-Verbose "Catalog ID is $CatalogID"
  Write-Verbose "Snapshot ID is $SnapshotID"
@@ -1095,8 +1126,11 @@ Param(
     While($status -eq "Pending" -or $status -eq "Execute" -or $status -eq "Executing"){
       $progress = (Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath)
       $status = $progress.order_status
-  
-      Write-Verbose "Current Status: $status"
+      $summary = $progress.summary
+      $parameters = $progress.parameters
+      $date = Get-Date -Format s
+      Write-Verbose "$date Currently Executing: $summary"
+      Write-Verbose "$date Current Status: $status"
   
       Start-Sleep -Seconds 5
     }
