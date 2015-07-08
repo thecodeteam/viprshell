@@ -1150,22 +1150,27 @@ Param(
       $summary = $progress.summary
       $parameters = $progress.parameters
       $date = Get-Date -Format s
-      Write-Output "$date Currently Executing: $summary"
-      Write-Output "$date Current Status: $status"
+      Write-Verbose "$date Currently Executing: $summary"
+      Write-Verbose "$date Current Status: $status"
   
       Start-Sleep -Seconds 5
     }
+    $ordernumber = $progress.order_number
     ###Get the order, should return all of the things we need including the final status and new resource IDs
     If($status -eq "FAILED" -or $status -eq "ERROR"){
         $date = Get-Date -Format s
-        Write-Error "$date $summary failed"
+        $message = $progress.message
+        Write-Verbose "$date ERROR: $summary failed for Order Number $ordernumber - ID $OrderID"
+        Write-Verbose "$date ERROR: $message"
         Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath
     }
+    else{
 
     #Return the order, it completed
     $date = Get-Date -Format s
-    Write-Output "$date $summary Completed Successfuly"
+    Write-Verbose "$date $summary Completed Successfuly for Order Number $ordernumber - ID $OrderID "
     Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath
+    }
     
 }
 
@@ -1247,9 +1252,10 @@ Function Get-ViPRErrorMsg([AllowNull()][object]$errordata){
     $reader = New-Object System.IO.StreamReader($ed)
     $responseBody = $reader.ReadToEnd(); 
     $errorcontent = $responseBody
-    $errormsg = $errorcontent.message
-
-    return $errorcontent
+    $errormsg = $errorcontent | ConvertFrom-Json
+    $date = Get-Date -Format s
+    $error = "$date ERROR: Error Code "+$errormsg.code+ " - "+$errormsg.description+ " - Details: "+$errormsg.details
+    return $error
     
     }
    catch{
