@@ -1249,13 +1249,12 @@ Function Get-ViPRErrorMsg([AllowNull()][object]$errordata){
     $errorcontent = $responseBody
     $errormsg = $errorcontent.message
 
-    Write-Output -ForegroundColor Red $errormsg
     return $errorcontent
     
     }
    catch{
-    Write-Output ""
-    Write-Output -ForegroundColor Red "Possible authentication or IP resolution error."
+    Write-Error ""
+    Write-Error -ForegroundColor Red "Possible authentication or IP resolution error."
     
    } 
   
