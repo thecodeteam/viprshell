@@ -234,7 +234,7 @@ Param(
                 }
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
             }
 
          $result
@@ -1255,7 +1255,7 @@ Function Get-ViPRErrorMsg([AllowNull()][object]$errordata){
     $errormsg = $errorcontent | ConvertFrom-Json
     $date = Get-Date -Format s
     $error = "$date ERROR: Error Code "+$errormsg.code+ " - "+$errormsg.description+ " - Details: "+$errormsg.details
-    return $error
+    return $errormsg
     
     }
    catch{
