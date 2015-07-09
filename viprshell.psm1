@@ -323,7 +323,7 @@ Param(
                 }
             catch{
 
-                Get-ViPRErrorMsg -errordata $result
+               Get-ViPRErrorMsg -errordata $result
             }
 
          $result
@@ -680,13 +680,31 @@ Param(
 
  $uri = "https://"+$ViprIP+":4443/catalog/orders"
  
- $result = try {
-                 $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+ $result = try { 
+                 $Tenant = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName)
+                 $TenantID = $Tenant.id
+
+                 if($Tenant.code){
+                    return $Tenant
+                 }
+
                  if($TenantID){
                  $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "CreateBlockSnapshot").id
                  }
-                 $VolumeID = (Get-ViPRVolume -TokenPath $TokenPath -ViprIP $ViprIP -Name $VolumeName).id
-                 $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+
+                 $Volume = (Get-ViPRVolume -TokenPath $TokenPath -ViprIP $ViprIP -Name $VolumeName)
+                 $VolumeID = $Volume.id
+
+                 if($Volume.code){
+                     return $Volume
+                    }
+                 
+                 $Project = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName)
+                 $ProjectID = $Project.id
+
+                 if($Project.code){
+                    return $Project
+                 }
  
 
                     $jsonbody = '
@@ -719,15 +737,22 @@ Param(
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+
                     
+
+
+                   if($TenantID -and $VolumeID -and $CatalogID -and $ProjectID){
                      $response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
                      $response
+                     }
                     
                     
                }
             catch{
-
+                
+                
                 Get-ViPRErrorMsg -errordata $result
+                
             }
     $result
 
@@ -752,13 +777,27 @@ Param(
  $uri = "https://"+$ViprIP+":4443/catalog/orders"
  
  $result = try {
+                 $Tenant = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName)
+                 $TenantID = $Tenant.id
 
-                 $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+                 if($Tenant.code){
+                    return $Tenant
+                 }
+
                  if($TenantID){
                     $CatalogID = (Get-ViPRCatalogService -TokenPath $TokenPath -TenantID $TenantID -ViprIP $ViprIP -Name "RemoveBlockSnapshot").id
                  }
-                 $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
-                 $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+                 
+                 $Snapshot = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName)
+                 $SnapshotID = $Snapshot.id
+
+                 if($Snapshot.code){
+                   return $Snapshot
+
+                 }
+
+                 $Project = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName)
+                 $ProjectID = $Project.id
                 
 
                     $jsonbody = '
@@ -782,9 +821,10 @@ Param(
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                    
+                    if($TenantID -and $ProjectID -and $SnapshotID -and $CatalogID){
                          $response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
                          $response
+                    }
                     
                }
             catch{
@@ -822,14 +862,43 @@ Param(
   $HostType = 'Cluster'
   }
   $result = try {
+                 
+                 $Tenant = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName)
+                 $TenantID = $Tenant.id
 
-                 $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+                 if($Tenant.code){
+                    return $Tenant
+                 }
+
+
                  if($TenantID){
                  $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "ExportSnapshottoaHost").id
                  }
-                 $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
-                 $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName -HostType $HostType).id
-                 $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+
+                 $Snapshot = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName)
+                 $SnapshotID =$Snapshot.id
+
+
+                 if($Snapshot.code){
+                    return $Snapshot
+                 }
+                 
+
+                 $Host = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName -HostType $HostType)
+                 $HostID = $Host.id
+
+                 if($Host.code){
+
+                    return $Host
+                 }
+                 
+                 $Project = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName)
+                 $ProjectID = $Project.id
+
+                 if($Project.code){
+
+                    return $Project
+                 }
  
 
                  $uri = "https://"+$ViprIP+":4443/catalog/orders"
@@ -867,9 +936,10 @@ Param(
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                     
+                    if($HostID -and $ProjectID -and $SnapshotID -and $TenantID -and $CatalogID){
                         $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
                         $response
+                    }
                     
                 }
            catch{
@@ -898,14 +968,36 @@ Param(
  
 )
  $result = try {
+                 
+                 $Tenant = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName)
+                 $TenantID = $Tenant.id
 
-                 $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+                 if($Tenant.code){
+                    return $Tenant
+                 }
+                 
                  if($TenantID){
                  $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "UnexportSnapshot").id
                  }
-                 $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
-                 $ExportID = (Get-ViprExportGroup -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
-                 $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+                 
+                 $Snapshot = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName)
+                 $SnapshotID = $Snapshot.id
+
+                 if($Snapshot.code){
+
+                    return $Snapshot
+                 }
+
+                 $Export = (Get-ViprExportGroup -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName)
+                 $ExportID = $Export.id
+
+                 if($Export.code){
+
+                    return $Export
+                 }
+
+                 $Project = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName)
+                 $ProjectID = $Project.id
  
 
                  $uri = "https://"+$ViprIP+":4443/catalog/orders"
@@ -934,8 +1026,10 @@ Param(
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
                     
+                    if($TenantID -and $ExportID -and $ProjectID -and $SnapshotID -and $CatalogID){
                         $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
                         $response
+                    }
                     
                 }
           catch {
@@ -984,14 +1078,39 @@ if($StorageType -eq 'exclusive'){
   }
 
   $result = try {
+                 
+                 $Tenant = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName)
+                 $TenantID = $Tenant.id
 
-                 $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+                 if($Tenant.code){
+                    return $Tenant
+                 }
+
+
                  if($TenantID){
                     $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "MountVolumeOnWindows").id
                  }
-                 $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
-                 $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName -HostType $HostType).id
-                 $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+
+                 $Snapshot = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName)
+                 $SnapshotID = $Snapshot.id
+
+                 if($Snapshot.code){
+                    return $Snapshot
+                 }
+
+                 $Host = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName -HostType $HostType)
+                 $HostID = $Host.id
+
+                 if($Host.code){
+                    return $Host
+                 }
+
+                 $Project = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName)
+                 $ProjectID = $Project.id
+
+                 if($Project.code){
+                    return $Project
+                 }
                 
 
                  $uri = "https://"+$ViprIP+":4443/catalog/orders"
@@ -1047,9 +1166,10 @@ if($StorageType -eq 'exclusive'){
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                   
+                    if($ProjectID -and $CatalogID -and $TenantID -and $HostID -and $SnapshotID){
                         $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
                         $response
+                    }
                     
                }
         catch{
@@ -1082,14 +1202,38 @@ Param(
 )
                 
    $result = try {           
-                
-                 $TenantID = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName).id
+                 
+                 $Tenant = (Get-ViPRTenant -TokenPath $TokenPath -ViprIP $ViprIP -Name $TenantName)
+                 $TenantID = $Tenant.id
+
+                 if($Tenant.code){
+                    return $Tenant
+                 }
+
                  if($TenantID){
                  $CatalogID = (Get-ViPRCatalogService -TenantID $TenantID -TokenPath $TokenPath -ViprIP $ViprIP -Name "UnmountVolumeOnWindows").id
                  }
-                 $SnapshotID = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName).id
-                 $HostID = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName).id
-                 $ProjectID = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName).id
+
+                 $Snapshot = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName)
+                 $SnapshotID = $Snapshot.id
+
+                 if($Snapshot.code){
+                    return $Snapshot
+                 }
+
+                 $Host = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName)
+                 $HostID = $Host.id
+
+                 if($Host.code){
+                    return $Host
+                 }
+
+                 $Project = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName)
+                 $ProjectID = $Project.id
+
+                 if($Project.code){
+                    return $Project
+                 }
                  
 
                  $uri = "https://"+$ViprIP+":4443/catalog/orders"
@@ -1255,8 +1399,8 @@ Function Get-ViPRErrorMsg([AllowNull()][object]$errordata){
     $errorcontent = $responseBody
     $errormsg = $errorcontent | ConvertFrom-Json
     
-    Write-Error $errorcontent
-    $errormsg
+   Write-Error $errorcontent
+   $errormsg
     
     
     }
