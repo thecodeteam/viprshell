@@ -1200,6 +1200,13 @@ Param(
   [ValidateSet('exclusive','shared')]
   [string]$StorageType
 )
+
+if($StorageType -eq 'exclusive'){
+  $HostType = 'Standalone'
+  }
+  else{
+  $HostType = 'Cluster'
+  }
                 
    $result = try {           
                  
@@ -1221,7 +1228,7 @@ Param(
                     return $Snapshot
                  }
 
-                 $Host = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName)
+                 $Host = (Get-ViPRHost -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName -HostType $HostType)
                  $HostID = $Host.id
 
                  if($Host.code){
