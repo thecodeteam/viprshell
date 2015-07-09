@@ -134,7 +134,7 @@ Param(
                 }
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
             }
 
     $result
@@ -176,7 +176,7 @@ Param(
                 }
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
             }
 
          $result
@@ -278,7 +278,7 @@ Param(
                 }
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
             }
 
          $result
@@ -323,7 +323,7 @@ Param(
                 }
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
             }
 
          $result
@@ -358,7 +358,7 @@ Param(
                 }
               catch{
                 
-                    Write-Error (Get-ViPRErrorMsg -errordata $result)
+                    Get-ViPRErrorMsg -errordata $result
 
               }
     $result
@@ -390,7 +390,7 @@ Param(
                     $response
                 }
                catch{
-                    Write-Error (Get-ViPRErrorMsg -errordata $result)
+                    Get-ViPRErrorMsg -errordata $result
                }
     $result
 }
@@ -442,7 +442,7 @@ Param(
                     }
                   }
             catch{
-              Write-Error (Get-ViPRErrorMsg -errordata $result)
+              Get-ViPRErrorMsg -errordata $result
             }
     $result
 }
@@ -485,7 +485,7 @@ Param(
                 }
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
             }
 
          $result
@@ -537,7 +537,7 @@ Param(
             
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
             }
     $result
 
@@ -569,7 +569,7 @@ Param(
                     }
                 }
                catch{
-                    Write-Error (Get-ViPRErrorMsg -errordata $result)
+                    Get-ViPRErrorMsg -errordata $result
                }
     $result
 
@@ -623,7 +623,7 @@ Param(
                     }
                   }
             catch{
-              Write-Error (Get-ViPRErrorMsg -errordata $result)
+              Get-ViPRErrorMsg -errordata $result
             }
     $result
 
@@ -655,7 +655,7 @@ Param(
                  }
               catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
 
               }
     $result
@@ -719,14 +719,15 @@ Param(
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                    if($TenantID -and $CatalogID -and $VolumeID -and $ProjectID){
+                    
                      $response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
                      $response
-                    }
+                    
+                    
                }
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
             }
     $result
 
@@ -781,14 +782,14 @@ Param(
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                    if($TenantID -and $CatalogID -and $SnapshotID -and $ProjectID){
+                    
                          $response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
                          $response
-                    }
+                    
                }
             catch{
 
-              Write-Error (Get-ViPRErrorMsg -errordata $result)
+              Get-ViPRErrorMsg -errordata $result
             }
     $result
 }
@@ -866,14 +867,14 @@ Param(
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                     if($TenantID -and $HostID -and $CatalogID -and $SnapshotID -and $ProjectID){
+                     
                         $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
                         $response
-                    }
+                    
                 }
            catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
            }
     $result
     
@@ -932,14 +933,14 @@ Param(
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                    if($TenantID -and $CatalogID -and $SnapshotID -and $ExportID -and $ProjectID){
+                    
                         $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
                         $response
-                    }
+                    
                 }
           catch {
 
-            Write-Error (Get-ViPRErrorMsg -errordata $result)
+            Get-ViPRErrorMsg -errordata $result
           }
     $result
 
@@ -1046,14 +1047,14 @@ if($StorageType -eq 'exclusive'){
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                    if($SnapshotID -and $TenantID -and $CatalogID -and $HostID -and $ProjectID){
+                   
                         $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
                         $response
-                    }
+                    
                }
         catch{
             
-            Write-Error (Get-ViPRErrorMsg -errordata $result)
+            Get-ViPRErrorMsg -errordata $result
 
         }
    $result
@@ -1115,14 +1116,14 @@ Param(
                     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
                     $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
                     $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
-                    if($TenantID -and $CatalogID -and $SnapshotID -and $HostID -and $ProjectID){
+                    
                      $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
                      $response
-                    }
+                    
                 }
         catch {
             
-            Write-Error (Get-ViPRErrorMsg -errordata $result)
+            Get-ViPRErrorMsg -errordata $result
 
         }
     $result
@@ -1221,7 +1222,7 @@ Function Get-ViPRCatalogService{
                   }
             catch{
 
-                Write-Error (Get-ViPRErrorMsg -errordata $result)
+                Get-ViPRErrorMsg -errordata $result
 
             }
     $result
@@ -1253,14 +1254,20 @@ Function Get-ViPRErrorMsg([AllowNull()][object]$errordata){
     $responseBody = $reader.ReadToEnd(); 
     $errorcontent = $responseBody
     $errormsg = $errorcontent | ConvertFrom-Json
-    $date = Get-Date -Format s
-    $error = "$date ERROR: Error Code "+$errormsg.code+ " - "+$errormsg.description+ " - Details: "+$errormsg.details
-    return $errormsg
+    
+    Write-Error $errorcontent
+    $errormsg
+    
     
     }
    catch{
-    Write-Error ""
-    Write-Error -ForegroundColor Red "Possible authentication or IP resolution error."
+    $catchall = '
+    { "code" : "404",
+      "description" : "Catch all",
+      "details": "Possible IP resolution or HTTP error"
+    }'
+    
+    return $catchall | ConvertFrom-Json
     
    } 
   
