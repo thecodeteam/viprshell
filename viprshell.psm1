@@ -262,8 +262,8 @@ Param(
     $result = try{ 
     
                     $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
-                   
-                    $id = ($response.resource | Where match -eq $Name | Select).id
+                    Write-Host $response
+                    $id = ($response.resource).id
 
                      #Uses bogus ID if no match was found to trigger error
                     if(!$id){
