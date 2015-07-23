@@ -248,12 +248,14 @@ Param(
   [Parameter(Mandatory=$true)]
   [string]$ViprIP,
   [Parameter(Mandatory=$true)]
-  [string]$Name,
+  [string]$HostName,
+  [Parameter(Mandatory=$true)]
+  [string]$SnapshotName,
   [Parameter(Mandatory=$true)]
   [string]$TokenPath
 )
 
-    $uri = "https://"+$ViprIP+":4443/block/exports/search?name=$Name"
+    $uri = "https://"+$ViprIP+":4443/block/exports/search?name=$HostName"
 
     
     $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
@@ -262,22 +264,45 @@ Param(
     $result = try{ 
     
                     $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+                    $numexports = ($response.resource.count)   
+                    $snapshot = Get-ViPRSnapshot -ViprIP $ViprIP -Name $SnapshotName -TokenPath $TokenPath
+                    $snapshotid = $snapshot.id
                     
-                    $id = ($response.resource).id
-
-                     #Uses bogus ID if no match was found to trigger error
-                    if(!$id){
-                    $id = "$Name"
-                    }
+                    if($snapshot.code){
                     
-                    $uri = "https://"+$ViprIP+":4443/block/exports/$id"
+                      return $snapshot
+                    }  
+                           
+                           
+                            $found = $null
 
-                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+                            foreach ($export in $response.resource){
+                                $exportid = $export.id 
+                            
+                                $uri = "https://"+$ViprIP+":4443/block/exports/$exportid"
+                            
+                                $exportdata = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+                        
+                                $exportvolumes = $exportdata.volumes.id
+                                $containsvolume = $exportvolumes.Contains($snapshotid)
+                            
+                                if($containsvolume){
+                                  $found = $exportdata
+                                  $exportdata
+                                  break
+                                }
+                            }
 
-                    $response
+                            if(!$found){
+                               $uri = "https://"+$ViprIP+":4443/block/exports/$HostName"
+
+                               Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+                            }
+                  
                 }
             catch{
-
+                
                 Get-ViPRErrorMsg -errordata $result
             }
 
@@ -338,7 +363,7 @@ Param(
   [Parameter(Mandatory=$true)]
   [string]$TokenPath
 )
-    $object = @()
+    
     $uri = "https://"+$ViprIP+":4443/block/volumes/bulk"
 
     
@@ -348,13 +373,8 @@ Param(
    
     $result = try{  
                     $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"  
-                    $response | ForEach-Object{ 
-                        $id = $_.id
-                        $uri = "https://"+$ViprIP+":4443/block/volumes/$id"
-                        $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
-                        $object += $response
-                    }
-                    $object
+                    $response 
+                    
                 }
               catch{
                 
@@ -493,7 +513,7 @@ Param(
 }
 
 #Gets all snapshots related to a parent volume
-Function Get-ViPRSnapshots{
+Function Get-ViPRSnapshotsByParent{
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -626,6 +646,50 @@ Param(
               Get-ViPRErrorMsg -errordata $result
             }
     $result
+
+}
+
+###Returns all exports for a given snapshot name###
+Function Get-ViPRSnapshotExports{
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath,
+  [Parameter(Mandatory=$true)]
+  [string]$SnapshotName
+)
+
+        $result = try{
+
+                        $Snapshot = (Get-ViPRSnapshot -TokenPath $TokenPath -ViprIP $ViprIP -Name $SnapshotName)
+                        $SnapshotID = $Snapshot.id
+
+                        if($Snapshot.code){
+                            return $Snapshot
+
+                        }
+
+                        $uri = "https://"+$ViprIP+":4443/block/snapshots/$SnapshotID/exports"
+                           
+                        $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+                        $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+                        $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+
+                        $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+                        $response
+
+
+        }
+        catch{
+
+            Get-ViPRErrorMsg -errordata $result
+
+        }
+  $result
+
+
 
 }
 ####UI Services - Order####
@@ -988,7 +1052,7 @@ Param(
                     return $Snapshot
                  }
 
-                 $Export = (Get-ViprExportGroup -TokenPath $TokenPath -ViprIP $ViprIP -Name $HostName)
+                 $Export = (Get-ViprExportGroup -TokenPath $TokenPath -ViprIP $ViprIP -HostName $HostName -SnapshotName $SnapshotName)
                  $ExportID = $Export.id
 
                  if($Export.code){
@@ -1324,6 +1388,42 @@ Param(
     Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath
     }
     
+}
+
+####Cancels ViPR Order####
+Function Stop-ViPROrder{
+[Cmdletbinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$OrderID,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+          $result = try{
+
+                $uri = "https://"+$ViprIP+":4443/catalog/orders/$OrderID/cancel"
+                $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+                $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+                $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+
+                $response = Invoke-RestMethod -Uri $uri -Method POST -Headers $headers -ContentType "application/json"
+        
+                $response
+
+          }
+          catch{
+
+
+            Get-ViPRErrorMsg -errordata $result
+
+          }
+
+  $result 
+
+
 }
 
 ####UI Services - Catalog Services####
