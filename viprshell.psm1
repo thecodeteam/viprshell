@@ -275,6 +275,7 @@ Param(
                            
                            
                             $found = $null
+                            $exports = @()
 
                             foreach ($export in $response.resource){
                                 $exportid = $export.id 
@@ -286,17 +287,26 @@ Param(
                                 $exportvolumes = $exportdata.volumes.id
                                 $containsvolume = $exportvolumes.Contains($snapshotid)
                             
+                                #add export object to the exports array if it contains the snapshot we're looking for
                                 if($containsvolume){
-                                  $found = $exportdata
-                                  $exportdata
-                                  break
+                                  $found = $true
+                                  $exports += $exportdata
+                                  
+                                  
                                 }
                             }
 
+                            #this returns an error code
                             if(!$found){
                                $uri = "https://"+$ViprIP+":4443/block/exports/$HostName"
 
                                Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+                            }
+                            else{
+                               #return the list of exports
+                               $exports
+
 
                             }
                   
@@ -1052,12 +1062,12 @@ Param(
                     return $Snapshot
                  }
 
-                 $Export = (Get-ViprExportGroup -TokenPath $TokenPath -ViprIP $ViprIP -HostName $HostName -SnapshotName $SnapshotName)
-                 $ExportID = $Export.id
+                 $ExportList = (Get-ViprExportGroup -TokenPath $TokenPath -ViprIP $ViprIP -HostName $HostName -SnapshotName $SnapshotName)
+                 
 
-                 if($Export.code){
+                 if($ExportList.code){
 
-                    return $Export
+                    return $ExportList
                  }
 
                  $Project = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName)
@@ -1065,6 +1075,12 @@ Param(
  
 
                  $uri = "https://"+$ViprIP+":4443/catalog/orders"
+                 $orderlist = @()
+                 
+                 #do this once for each export in the list
+                 foreach($Export in $ExportList){
+                 $ExportID = $Export.id
+                
                  $jsonbody = '
                  {
                     "tenantId": "'+$TenantID+'",
@@ -1092,10 +1108,16 @@ Param(
                     
                     if($TenantID -and $ExportID -and $ProjectID -and $SnapshotID -and $CatalogID){
                         $response = Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json"
-                        $response
+                        $orderlist += $response
                     }
                     
                 }
+
+                if($TenantID -and $ExportID -and $ProjectID -and $SnapshotID -and $CatalogID){
+                        #return the array of export order objects
+                        $orderlist
+                   }
+          }
           catch {
 
             Get-ViPRErrorMsg -errordata $result
