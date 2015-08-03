@@ -19,15 +19,42 @@ add-type @"
 ####Token Generation####
 
 #Creates the proxy token - this will be a one-time setup typically
-Function New-ViPR-Proxy-Token{
+Function New-ViPRProxyToken{
+
+<#
+     .DESCRIPTION
+      Creates a ViPR Proxy Token for a particular user which can be used in scripting. Typically done once. More info here: https://www.emc.com/techpubs/vipr/run_rest_api_script_proxy_user-1.htm
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Username
+      Username used to login to ViPR
+
+      .PARAMETER $Password
+      Password used to login to ViPR
+
+      .PARAMETER $ProxyUsername
+      Username of the proxy user in ViPR. Today, proxyuser is the default and can not be changed
+
+      .PARAMETER $ProxyPassword
+      Password of the proxy user in ViPR
+
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      New-ViPRProxyToken -ViprIP 10.1.1.20 -Username root -Password changeme -ProxyUsername proxyuser -ProxyPassword p@ssw0rd! -TokenPath C:\temp\tokens
+
+  #>
 [Cmdletbinding()]
 
 Param(
   [string]$ViprIP,
   [string]$Username,
   [string]$Password,
-  [string]$Proxyusername,
-  [string]$Proxypassword,
+  [string]$ProxyUsername,
+  [string]$ProxyPassword,
   [string]$TokenPath
 )
 
@@ -60,6 +87,27 @@ Param(
 }
 #Authenticates the proxy user using the proxy token that was already created
 Function New-ViprProxyUserAuthToken{
+
+<#
+     .DESCRIPTION
+      Authenticates and creates proxyuser authentication token used for subsequent calls. This expires after ~8 hours. More info here: https://www.emc.com/techpubs/vipr/run_rest_api_script_proxy_user-1.htm
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $ProxyUsername
+      Username of the proxy user in ViPR. Today, proxyuser is the default and can not be changed
+
+      .PARAMETER $ProxyUserPassword
+      Password of the proxy user in ViPR
+
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      New-ViPRProxyUserAuthToken -ViprIP 10.1.1.20 -ProxyUsername proxyuser -ProxyUserPassword p@ssw0rd! -TokenPath C:\temp\tokens
+
+  #>
  [Cmdletbinding()]
  Param(
  [Parameter(Mandatory=$true)]
@@ -98,6 +146,24 @@ Function New-ViprProxyUserAuthToken{
 
 ####Tenant Services####
 Function Get-ViPRTenant{
+
+<#
+     .DESCRIPTION
+      Retrieves information about a particular ViPR Tenant
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Name
+      Name of the tenant 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprTenant -ViprIP 10.1.1.20 -Name "Provider Tenant" -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -141,6 +207,24 @@ Param(
 }
 
 Function Get-ViPRProject{
+
+<#
+     .DESCRIPTION
+      Retrieves information about a particular ViPR Project
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Name
+      Name of the project 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprTenant -ViprIP 10.1.1.20 -Name Project123 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -187,6 +271,26 @@ Param(
 
 ####Compute Services####
 Function Get-ViPRHost{
+<#
+     .DESCRIPTION
+      Retrieves information about a particular ViPR Host
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Name
+      Name of the host
+      
+      .PARAMETER $HostType
+      Type of Host. Either cluster or standalone - used to determine which endpoint to look for the host in.  
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprHost -ViprIP 10.1.1.20 -Name host123 -HostType Standalone -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -243,6 +347,27 @@ Param(
 
 
 Function Get-ViprExportGroup{
+
+<#
+     .DESCRIPTION
+      Retrieves information about a particular ViPR Export Group. Currently relies on a Snapshot Name to ensure correct groups are returned, soon will also include Volume Names. 
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $HostName
+      Name of the host 
+
+      .PARAMETER $SnapshotName
+      Name of the snapshot that an export must contain. Because hosts can have many export groups, we are looking for only those that contain the correct snapshots/volumes. 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprExportGroup -ViprIP 10.1.1.20 -HostName host123 -SnapshotName snapshot123 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -323,6 +448,24 @@ Param(
 
 ####Block Services####
 Function Get-ViPRVolume{
+
+<#
+     .DESCRIPTION
+      Retrieves information about a particular ViPR Volume
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Name
+      Name of the volume 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprVolume -ViprIP 10.1.1.20 -Name Volume123 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -366,6 +509,21 @@ Param(
 
 #Returns array of Volume objects 
 Function Get-ViPRVolumes{
+
+<#
+     .DESCRIPTION
+      Retrieves all IDs of ViPR Volumes
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprVolumes -ViprIP 10.1.1.20 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -394,8 +552,26 @@ Param(
     $result
  }
 
-#Gets Tags for a Snapshot
+#Gets Tags for a Volume
 Function Get-ViPRVolumeTags{
+
+<#
+     .DESCRIPTION
+      Retrieves tags for a ViPR Volume
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $VolumeName
+      Name of the volume 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprVolumeTags -ViprIP 10.1.1.20 -VolumeName Volume123 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -427,6 +603,30 @@ Param(
 
 #Gets Tags for a Snapshot
 Function Set-ViPRVolumeTag{
+
+<#
+     .DESCRIPTION
+      Adds or Removes a tag for a ViPR Volume
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $VolumeName
+      Name of the volume 
+
+      .PARAMETER $Tag
+      Tag that you want to be removed or added
+
+      .PARAMETER $Action
+      Tells the function to either add or remove the given tag
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Set-ViprVolumetag -ViprIP 10.1.1.20 -VolumeName Volume123 -Tag testtag -Action Add -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -480,6 +680,24 @@ Param(
 ####Snapshot Services####
 #Gets Snapshot information based on a name 
 Function Get-ViPRSnapshot{
+
+<#
+     .DESCRIPTION
+      Retrieves information about a particular ViPR Snapshot
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Name
+      Name of the Snapshot
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprSnapshot -ViprIP 10.1.1.20 -Name Volume123 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -524,6 +742,24 @@ Param(
 
 #Gets all snapshots related to a parent volume
 Function Get-ViPRSnapshotsByParent{
+
+<#
+     .DESCRIPTION
+      Retrieves all children snapshots of a given parent volume
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $ParentVolumeName
+      Name of the Snapshot
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprSnapshotsByParent -ViprIP 10.1.1.20 -ParentVolumeName Volume123 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -575,6 +811,24 @@ Param(
 
 #Gets Tags for a Snapshot
 Function Get-ViPRSnapshotTags{
+
+<#
+     .DESCRIPTION
+      Retrieves tags for a ViPR Snapshot
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $SnapshotName
+      Name of the volume 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprSnapshotTags -ViprIP 10.1.1.20 -VolumeName Volume123 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -607,6 +861,30 @@ Param(
 
 #Gets Tags for a Snapshot
 Function Set-ViPRSnapshotTag{
+
+<#
+     .DESCRIPTION
+      Adds or Removes a tag for a ViPR Snapshot
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $VolumeName
+      Name of the volume 
+
+      .PARAMETER $Tag
+      Tag that you want to be removed or added
+
+      .PARAMETER $Action
+      Tells the function to either add or remove the given tag
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Set-ViprSnapshotTag -ViprIP 10.1.1.20 -SnapshotName Volume123 -Tag testtag -Action Add -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -661,6 +939,24 @@ Param(
 
 ###Returns all exports for a given snapshot name###
 Function Get-ViPRSnapshotExports{
+
+<#
+     .DESCRIPTION
+      Retrieves exports for a ViPR Snapshot
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $SnapshotName
+      Name of the volume 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprSnapshotExports -ViprIP 10.1.1.20 -SnapshotName Volume123 -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -706,6 +1002,24 @@ Param(
 
 #Returns the order information given an order ID which will show status 
 Function Get-ViPROrder{
+
+<#
+     .DESCRIPTION
+      Retrieves the status for an order
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $ID
+      Order ID. Typically returned after executing an order.  
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprOrder -ViprIP 10.1.1.20 -ID 1ladkj4310834alakf -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -736,6 +1050,33 @@ Param(
 
 }
 Function New-ViPRSnapshot-Order{
+
+<#
+     .DESCRIPTION
+      Executes the Snapshot Order as seen in ViPR GUI. Takes a snapshot of a given volume and returns an order object.  
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $VolumeName
+      Name of the volume that you want to take a snapshot of
+      
+      .PARAMETER $SnapshotName
+      Name of the snapshot you will be creating
+      
+      .PARAMETER $TenantName
+      Name of the Vipr Tenant that is executing the Snapshot Order
+      
+      .PARAMETER $ProjectName
+      Name of the Project the snapshot will belong to 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      New-ViprSnapshotOrder -ViprIP 10.1.1.20 -VolumeName parentvolume123 -SnapshotName snapshot123 -TenantName "Provider Tenant" -ProjectName testproject -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -833,6 +1174,30 @@ Param(
 }
 
 Function Remove-ViprSnapshot-Order{
+
+<#
+     .DESCRIPTION
+      Executes the Remove Snapshot Order as seen in ViPR GUI. Removes a snapshot and returns an order object.  
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+      
+      .PARAMETER $SnapshotName
+      Name of the snapshot you will be creating
+      
+      .PARAMETER $TenantName
+      Name of the Vipr Tenant that is executing the Snapshot Order
+      
+      .PARAMETER $ProjectName
+      Name of the Project the snapshot will belong to 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Remove-ViprSnapshot-Order -ViprIP 10.1.1.20 -SnapshotName snapshot123 -TenantName "Provider Tenant" -ProjectName testproject -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -909,6 +1274,35 @@ Param(
 }
 
 Function Export-ViPRSnapshot-Order{
+<#
+     .DESCRIPTION
+      Executes the Export Snapshot Order as seen in ViPR GUI. Exports snapshot to a given host and returns an order object.  
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $HostName
+      Name of the host you would like to export the snapshot to
+      
+      .PARAMETER $SnapshotName
+      Name of the snapshot you will be creating
+
+      .PARAMETER $HLU
+      HLU the exported volume should be assigned to on the host. Use -1 for the next available. 
+      
+      .PARAMETER $TenantName
+      Name of the Vipr Tenant that is executing the Snapshot Order
+      
+      .PARAMETER $ProjectName
+      Name of the Project the snapshot will belong to 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Export-ViPRSnapshot-Order -ViprIP 10.1.1.20 -SnapshotName snapshot123 -TenantName "Provider Tenant" -ProjectName testproject -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -1025,6 +1419,33 @@ Param(
 }
 
 Function Unexport-ViPRSnapshot-Order{
+
+<#
+     .DESCRIPTION
+      Executes the Unexport Snapshot Order as seen in ViPR GUI. Unexports a given snapshot from a host and returns an order object.  
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $HostName
+      Name of the host you would like to export the snapshot to
+      
+      .PARAMETER $SnapshotName
+      Name of the snapshot you will be creating
+      
+      .PARAMETER $TenantName
+      Name of the Vipr Tenant that is executing the Snapshot Order
+      
+      .PARAMETER $ProjectName
+      Name of the Project the snapshot will belong to 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Unexport-ViPRSnapshot-Order -ViprIP 10.1.1.20 -SnapshotName snapshot123 -HostName host1234 -TenantName "Provider Tenant" -ProjectName testproject -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -1127,6 +1548,47 @@ Param(
 }
 
 Function Mount-ViPRWindowsVolume-Order{
+<#
+     .DESCRIPTION
+      Executes the Mount Windows Volume Order as seen in ViPR GUI. Mounts a snapshot to a Windows host and returns an order object.  
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $HostName
+      Name of the host you would like to export the snapshot to
+      
+      .PARAMETER $SnapshotName
+      Name of the snapshot you will be creating
+
+      .PARAMETER $StorageType
+      Sets the type of storage. Set 'exclusive' for standalone hosts, or 'shared' for shared volumes.
+      
+      .PARAMETER $PartitionType
+      Set to gpt or mbr
+      
+      .PARAMETER $FileSystemType
+      Set to NTFS or FAT32
+      
+      .PARAMETER $DriveLabel
+      Optional. Sets a label for the snapshot mounted to the Windows Host
+      
+      .PARAMETER $MountPoint
+      Optional. Sets a mount point for the snapshot mounted to the Windows Host  
+      
+      .PARAMETER $TenantName
+      Name of the Vipr Tenant that is executing the Snapshot Order
+      
+      .PARAMETER $ProjectName
+      Name of the Project the snapshot will belong to 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Mount-ViPRWindowsVolume-Order -ViprIP 10.1.1.20 -SnapshotName snapshot123 -TenantName "Provider Tenant" -ProjectName testproject -StorageType exclusive -PartitionType gpt -FileSystemType ntfs -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -1268,6 +1730,36 @@ if($StorageType -eq 'exclusive'){
 }
 
 Function Unmount-ViPRWindowsVolume-Order{
+
+<#
+     .DESCRIPTION
+      Executes the Export Snapshot Order as seen in ViPR GUI. Takes a snapshot of a given volume and returns an order object.  
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $HostName
+      Name of the host you would like to export the snapshot to
+      
+      .PARAMETER $SnapshotName
+      Name of the snapshot you will be creating
+
+      .PARAMETER $StorageType
+      Type of storage the Snapshot is. Set 'exclusive' for standalone host, or 'shared' for shared/cluster. 
+      
+      .PARAMETER $TenantName
+      Name of the Vipr Tenant that is executing the Snapshot Order
+      
+      .PARAMETER $ProjectName
+      Name of the Project the snapshot will belong to 
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Unmount-ViPRWindowsVolume-Order -ViprIP 10.1.1.20 -SnapshotName snapshot123 -TenantName "Provider Tenant" -ProjectName testproject -StorageType exclusive -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
@@ -1369,6 +1861,24 @@ if($StorageType -eq 'exclusive'){
 
 #Checks order status until it has a successful or failure state, then returns the order information
 Function Get-ViPROrderStatus{
+
+<#
+     .DESCRIPTION
+      Takes an Order ID returned from an Order function and looks up the status in a loop until the order has either failed or completed. Returns the final order object.  
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $OrderID
+      ID of the order to track
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprOrderStatus -ViprIP 10.1.1.20 -OrderID 1a234adflkajaldfj -TokenPath C:\temp\tokens
+
+  #>
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory=$true)]
