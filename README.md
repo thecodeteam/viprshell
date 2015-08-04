@@ -84,10 +84,15 @@ Unmount-ViPRWindowsVolume-Order
 
 ##Support
 Please file bugs and issues at the Github issues page. For more general discussions you can contact the EMC Code team at <https://groups.google.com/forum/#!forum/emccode-users>. The code and 
-documentation are released with no warranties or SLAs and are intended to be supported through a community driven process.  
+documentation are released with no warranties or SLAs and are intended to be supported through a community driven process. 
+
+##Contributing
+Create a fork of the project into your own repository. Make all your necessary changes and create a pull request with a description on what was added or removed and details explaining the changes in lines of code. If approved, project owners will merge it. You can also contribute by reporting issues/bugs. 
 
 ##Licensing
 The MIT License (MIT)
+
+Copyright (c) 2015 Brandon Kvarda
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
