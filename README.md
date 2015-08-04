@@ -8,6 +8,10 @@ projects, tenants, volumes, snapshots, hosts, and exports; Create orders for sna
 Place all contents into your [PowerShell Module folder](https://msdn.microsoft.com/en-us/library/dd878350%28v=vs.85%29.aspx), or use [Import-Module](https://technet.microsoft.com/en-us/library/hh849725.aspx)
 It is expected to see Warnings when importing the module, as some non-standard verbs were used in this module to better represent the functionality of certain functions. 
 ##Usage
+This module leverages a ViPR feature called proxy tokens to execute commands. The first thing that will need to be executed once the module is installed is is 'New-ViPRProxyToken'. This will create a token file containing the proxy token. 
+You will then need to use the "proxyuser" account to authenticate to ViPR using its credentials and the proxy token created for your desired execution account (using New-ViprProxyUserAuthToken). For scripting, New-ViPRProxyToken will
+only need to be ran once per host per ViPR user that will be executing ViPR calls. New-ViprProxyUserAuthToken will need to be executed at least once every 8 hours to authenticate the "proxyuser" account. For more information on proxy tokens and ViPR,
+please see [this article](http://www.emc.com/techpubs/vipr/run_rest_api_script_proxy_user-4.htm).
 
 Below is a list of commands that can currently be leveraged by using this module. For help regarding each command, import the module and leverage the 'Get-Help' functionality of PowerShell.
 For example, "Get-Help Get-ViPRHost -All" will return a description of the command, the parameters and information about each parameter, as well as examples. 
