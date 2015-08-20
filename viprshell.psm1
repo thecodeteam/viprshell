@@ -318,9 +318,9 @@ Param(
     $result = try{ 
     
                     $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
-        
+					
                     $id = ($response.resource | Where match -eq $Name | Select).id
-
+					
                      #Uses bogus ID if no match was found to trigger error
                     if(!$id){
                     $id = "$Name"
@@ -337,14 +337,13 @@ Param(
                     $response
                 }
             catch{
-
+				
                 Get-ViPRErrorMsg -errordata $result
             }
 
          $result
  
 }
-
 
 Function Get-ViprExportGroup{
 
@@ -434,6 +433,205 @@ Param(
          $result
    
 }
+
+
+####File Services####
+Function New-ViprFilesystem{
+<#
+	.DESCRIPTION
+	Creates file system. 
+
+	The VNX File array does not allow 'root' as the beginning of a file system name. 
+	If the generated file system name begins with 'root', then the VNX File array will return an error.
+
+	NOTE: This is an asynchronous operation. 
+
+	.PARAMETER $ViprIP
+	IP Address or hostname for ViPR Instance
+
+	.PARAMETER $Varray
+	URI representing the virtual array containing the file system
+
+	.PARAMETER $Vpool
+	URI representing the virtual pool supporting the file system.
+
+	.PARAMETER $Name
+	User provided name or label assigned to the file system.
+
+	.PARAMETER $Size
+	Total capacity of the file system in GB.
+
+	.PARAMETER $Project
+	Project Name
+	
+	.PARAMETER $TokenPath
+	Directory where token files will be stored. These are used for all commands in this module
+
+	.EXAMPLE
+	New-ViprFilesystem -ViprIP 10.1.1.20 -Varray "varray name" -Vpool "vpool name" -Name "filesystem name" =Project "Project Name" -Size [size in GB] -TokenPath C:\temp\tokens
+ 
+  #>
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$Varray,
+  [Parameter(Mandatory=$true)]
+  [string]$Vpool,
+  [Parameter(Mandatory=$true)]
+  [string]$Name,
+  [Parameter(Mandatory=$true)]
+  [string]$ProjectName,
+  [Parameter(Mandatory=$true)]
+  [long]$Size,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+	#       GB      MB     KB      B
+	$Size = $Size * 1024 * 1024  * 1024; # convert from GB to Bytes
+
+	
+ 
+	$Project = (Get-ViPRProject -TokenPath $TokenPath -ViprIP $ViprIP -Name $ProjectName)
+	$ProjectID = $Project.id
+	$ProjectID = [System.Web.HttpUtility]::UrlEncode($ProjectID) 
+	$uri = "https://"+$ViprIP+":4443/file/filesystems?project=$ProjectID"
+	
+	if($Project.code){
+		return $Project
+	}
+
+ 
+	$result = try { 
+		$jsonbody = '
+		{
+		"name": "'+$Name+'",
+		"size": "'+$Size+'",
+		"vpool": "'+$Vpool+'",
+		"varray": "'+$Varray+'"
+		}'
+
+		
+		$authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+		$proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+		$headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+
+		
+		$response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
+		$response
+		
+
+	} # end try
+	catch{
+		Get-ViPRErrorMsg -errordata $result
+	} # end catch
+    $result
+}
+ 
+Function New-ViprSMBShare{
+ 
+<#
+    .DESCRIPTION
+    Create SMB file share
+ 
+    NOTE: This is an asynchronous operation.
+ 
+    .PARAMETER $ViprIP
+    IP Address or hostname for ViPR Instance
+ 
+    .PARAMETER $Viprfsid
+    URN of the desired ViPR File System
+          
+    .PARAMETER $Name
+    User provided name of the file share.
+          
+    .PARAMETER $Description
+    User provided description of the file share.
+
+    .PARAMETER $MaxUsers
+    Maximum number of users of the file share. Default is unlimited.
+          
+    .PARAMETER $PermissionType
+    Permission type for the file share. Default is "allow".
+    Valid values: "allow", "deny"
+          
+    .PARAMETER $Permission
+    Permission type for the file share. Default is "change".
+    Valid values: "read", "change", "full"
+          
+    .PARAMETER $TokenPath
+    Directory where token files will be stored. These are used for all commands in this module
+ 
+    .EXAMPLE
+    New-ViprSMBShare -ViprIP 10.1.1.20 -Viprfis "URN of File System" -Name "FS Name" -Description "FS Description" [-MaxUsers [max user count]] [-PermissionType allow|deny] [-Permission read|change|full] -TokenPath C:\temp\tokens
+ 
+#>
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$Viprfsid,
+  [Parameter(Mandatory=$true)]
+  [string]$Name,
+  [Parameter(Mandatory=$true)]
+  [string]$Description,
+  [Parameter(HelpMessage="MaxUsers must be between -1 (unlimited) and 65536")]
+  [ValidateRange(-1,65536)]
+  [string]$Maxusers,
+  [Parameter(HelpMessage="Allowable values for PermissionType are 'allow' or 'deny'")]
+  [ValidateSet('allow','deny')]
+  [string]$PermissionType,
+  [Parameter(HelpMessage="Allowable values for Permission are 'read', 'change', or 'full'")]
+  [ValidateSet('read','change','full')]
+  [string]$Permission,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+) # end cmdlet binding
+
+## Set default values for optional parameters
+	if(!$Maxusers) {
+		$Maxusers = -1;
+	}
+	if(!$PermissionType) {
+		$PermissionType = "allow";
+	}
+	if(!$Permission) {
+		$Permission = "change";
+	}
+
+	$Viprfsid = [System.Web.HttpUtility]::UrlEncode($Viprfsid) 
+	$uri = "https://"+$ViprIP+":4443/file/filesystems/"+$Viprfsid+"/shares"
+	$uri
+	$result = try { 
+		$jsonbody = '
+		{
+		"name": "'+$Name+'",
+		"description": "'+$Description+'",
+		"max_users": "'+$Maxusers+'",
+		"permission_type": "'+$PermissionType+'",
+		"permission": "'+$Permission+'"
+		}'
+		$jsonbody
+		$authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+		$proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+		$headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+
+		
+		$response = (Invoke-RestMethod -Uri $uri -Method POST -Body $jsonbody -Headers $headers -ContentType "application/json")
+		#$viprfsid = $response.resource.id
+		$response
+		
+	} # end try
+	catch{
+		Get-ViPRErrorMsg -errordata $result
+	}
+	
+	$result
+	 
+} # end function New-ViprSMBShare
+
 
 
 ####Block Services####
@@ -1990,6 +2188,319 @@ Function Get-ViPRCatalogService{
 
 }
 
+#### Search Services ####
+Function Search-ViPRHost{
+<#
+     .DESCRIPTION
+      Lists hosts, or searches hosts by name, tag, project, or additional parameters (for example, wwn or initiator_port, etc
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Search
+      Search parameters.  If this parameter is not specified, will list all hosts.
+      
+      .PARAMETER $HostType
+      Type of Host. Either cluster or standalone - used to determine which endpoint to look for the host in.  
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      $reponse = Search-ViprHost -ViprIP 10.1.1.20 -Search host123 -HostType Standalone -TokenPath C:\temp\tokens
+	  If -Search specified, $response.resource is an array of host objects with properties match, id, and link
+	  If -Search not specified, $resource.host is an array of host objects with properties name, id, and link
+	  
+
+  #>
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [string]$Search,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet('Cluster','Standalone')]
+  [string]$HostType
+)
+
+	if(!$Search)
+	{
+		
+		if($HostType -eq 'Standalone'){
+			$uri = "https://"+$ViprIP+":4443/compute/hosts"
+		}
+		else {
+			$uri = "https://"+$ViprIP+":4443/compute/clusters"
+		} 
+	}
+	else {
+
+		if($HostType -eq 'Standalone'){
+		$uri = "https://"+$ViprIP+":4443/compute/hosts/search?name=$Search"
+		}
+		else{
+		$uri = "https://"+$ViprIP+":4443/compute/clusters/search?name=$Search"
+		}
+	}
+
+	$authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+	$proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+	$headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+        
+    $result = try{ 
+    
+                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+					$response
+                }
+            catch{
+				
+                Get-ViPRErrorMsg -errordata $result
+            }
+	$result
+}
+
+Function Search-ViprVirtualArray{
+<#
+     .DESCRIPTION
+      Lists varrays, or searches varrays by name, tag, project, or additional parameters (for example, wwn or initiator_port, etc)
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Search
+      Search parameters.  If this parameter is not specified, will list all hosts.
+      
+        .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      $reponse = Search-ViprVirtualArray -ViprIP 10.1.1.20 -Search [varray123] -HostType Standalone -TokenPath C:\temp\tokens
+	  If -Search specified, $response.resource is an array of varray objects with properties match, id, and link
+	  If -Search not specified, $resource.varray is an array of varray objects with properties name, id, and link
+	  
+
+  #>
+[CmdletBinding()]
+Param(
+  [string]$ViprIP,
+  [string]$Search,
+  [string]$TokenPath
+)
+	if(!$ViprIP)
+	{
+		$ViprIP = $env:ViprIP
+		if(!$ViprIP) {
+			Write-Host -foregroundcolor Red "ViprIP must be declared as an argument or environment variable"
+			return
+		}
+	}
+	if(!$TokenPath)
+	{
+		$TokenPath = $env:ViprTokenPath
+		if(!$TokenPath) {
+			Write-Host -foregroundcolor Red "ViprIP must be declared as an argument or environment variable (ViprTokenPath)"
+			return
+		}
+	}
+
+	if(!$Search)
+	{
+		$uri = "https://"+$ViprIP+":4443/vdc/varrays"
+		 
+	}
+	else {
+
+		$uri = "https://"+$ViprIP+":4443/vdc/varrays/search?name=$Search"
+	}
+
+	$authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+	$proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+	$headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+        
+    $result = try{ 
+    
+                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+					$response
+                }
+            catch{
+				
+                Get-ViPRErrorMsg -errordata $result
+            }
+	$result
+} # end Search-ViPRVirtualArray
+
+
+Function Search-ViprFileVirtualPool{
+<#
+     .DESCRIPTION
+      Lists varrays, or searches varrays by name, tag, project, or additional parameters (for example, wwn or initiator_port, etc)
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance.  Can also be defined in environment variable 'ViprIP'.
+
+      .PARAMETER $Search
+      Search parameters.  If this parameter is not specified, will list all hosts.
+      
+        .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module.  Can also be defined in environment variable 'ViprTokenPath'.
+
+      .EXAMPLE
+      $reponse = Search-ViprVirtualPool -ViprIP 10.1.1.20 -Search [varray123] -HostType Standalone -TokenPath C:\temp\tokens
+	  If -Search specified, $response.resource is an array of vpool objects with properties match, id, and link
+	  If -Search not specified, $resource.virtualpool is an array of vpool objects with properties name, id, and link
+	  
+
+  #>
+[CmdletBinding()]
+Param(
+  [string]$ViprIP,
+  [string]$Search,
+  [string]$TokenPath
+)
+	if(!$ViprIP)
+	{
+		$ViprIP = $env:ViprIP
+		if(!$ViprIP) {
+			Write-Host -foregroundcolor Red "ViprIP must be declared as an argument or environment variable"
+			return
+		}
+	}
+	if(!$TokenPath)
+	{
+		$TokenPath = $env:ViprTokenPath
+		if(!$TokenPath) {
+			Write-Host -foregroundcolor Red "ViprIP must be declared as an argument or environment variable (ViprTokenPath)"
+			return
+		}
+	}
+
+	if(!$Search)
+	{
+		$uri = "https://"+$ViprIP+":4443/file/vpools"
+		 
+	}
+	else {
+
+		$uri = "https://"+$ViprIP+":4443/file/vpools/search?name=$Search"
+	}
+
+	$authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+	$proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+	$headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+        
+    $result = try{ 
+    
+                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+					$response
+                }
+            catch{
+				
+                Get-ViPRErrorMsg -errordata $result
+            }
+	$result
+} # end Search-ViPRFileVirtualPool
+
+Function Search-ViPRFilesystem{
+<#
+     .DESCRIPTION
+      Lists or searches filesystems by name, tag, project, or additional parameters (for example, wwn or initiator_port, etc
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Search
+      Search parameters
+      
+      PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      $reponse = Search-ViprFilesystem -ViprIP 10.1.1.20 -Search fs123  -TokenPath C:\temp\tokens
+	  $response.resource is an array of filesystem objects with properties match, id, and link
+	  
+
+  #>
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [string]$Search,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+	if(!$Search) {
+		$uri = "https://"+$ViprIP+":4443/file/filesystems/bulk"
+	} else {
+	    $uri = "https://"+$ViprIP+":4443/file/filesystems/search?name=$Search"
+	}
+	$authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+	$proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+	$headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+        
+    $result = try{ 
+    
+                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+					$response
+                }
+            catch{
+				
+                Get-ViPRErrorMsg -errordata $result
+            }
+	$result
+}
+
+
+Function Search-ViPRProject{
+<#
+     .DESCRIPTION
+      Lists or searches projects by name, tag, project, or additional parameters (for example, wwn or initiator_port, etc
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $Search
+      Search parameters
+      
+      PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      $reponse = Search-ViprProject -ViprIP 10.1.1.20 -Search fs123  -TokenPath C:\temp\tokens
+	  If -Search is not specified, $response.id contains list of projects
+	  If -Search is specified $response.resource is an array of project objects with properties match, id, and link
+	  
+
+  #>
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [string]$Search,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+	if(!$Search) {
+		$uri = "https://"+$ViprIP+":4443/projects/bulk"
+	} else {
+	    $uri = "https://"+$ViprIP+":4443/projects/search?name=$Search"
+	}
+	$authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+	$proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+	$headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+        
+    $result = try{ 
+    
+                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+					$response
+                }
+            catch{
+				
+                Get-ViPRErrorMsg -errordata $result
+            }
+	$result
+} # end Search-ViprProject
 
 ####Helpers####
 
