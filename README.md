@@ -109,7 +109,7 @@ Search-ViprProject
 Get-ViprTask
 ```
 ```
-Get-ViprTaskStatus'
+Get-ViprTaskStatus
 ```
 
 ##Support

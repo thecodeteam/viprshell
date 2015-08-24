@@ -2588,7 +2588,7 @@ Param(
     $status = "Pending"
 
     While($status -eq "Pending" -or $status -eq "pending" -or $status -eq "Execute" -or $status -eq "Executing"){
-      $progress = (Get-ViPROrder -ViprIP $ViprIP -ID $TaskID -TokenPath $TokenPath)
+      $progress = (Get-ViPRTask -ViprIP $ViprIP -ID $TaskID -TokenPath $TokenPath)
       $status = $progress.state
       $summary = $progress.message
       #$parameters = $progress.parameters
@@ -2598,23 +2598,23 @@ Param(
   
       Start-Sleep -Seconds 5
     }
-    $ordernumber = $progress.resource.id
+    
     ###Get the order, should return all of the things we need including the final status and new resource IDs
     If($status -eq "FAILED" -or $status -eq "ERROR"){
         $date = Get-Date -Format s
         $message = $progress.service_error.description
 		$details = $progress.service_error.details
-        Write-Verbose "$date ERROR: $summary failed for Order Number $ordernumber - ID $OrderID"
+        Write-Verbose "$date ERROR: $summary failed for $TaskID"
         Write-Verbose "$date ERROR: $message"
 		Write-Verbose "DETAILS: $details"
-        Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath
+        Get-ViPRTask -ViprIP $ViprIP -ID $TaskID -TokenPath $TokenPath
     }
     else{
 
     #Return the order, it completed
     $date = Get-Date -Format s
-    Write-Verbose "$date $summary Completed Successfuly for Order Number $ordernumber - ID $OrderID "
-    Get-ViPROrder -ViprIP $ViprIP -ID $OrderID -TokenPath $TokenPath
+    Write-Verbose "$date $summary Completed Successfuly for Task Number $TaskID "
+    Get-ViPRTask -ViprIP $ViprIP -ID $TaskID -TokenPath $TokenPath
     }
     
 } # end Get-ViprTaskStatus
