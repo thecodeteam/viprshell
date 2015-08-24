@@ -2502,6 +2502,123 @@ Param(
 	$result
 } # end Search-ViprProject
 
+#### Other Services ####
+#### Tasks ####
+Function Get-ViprTask{
+
+<#
+     .DESCRIPTION
+      Retrieves the status for an order
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $ID
+      Task ID. Typically returned after executing an indvidual POST action.
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprOrder -ViprIP 10.1.1.20 -ID 1ladkj4310834alakf -TokenPath C:\temp\tokens
+
+  #>
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$ID,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+    $uri = "https://"+$ViprIP+":4443/vdc/tasks/$ID"
+
+    
+    $authtoken = Get-Content -Path "$TokenPath\viprauthtoken.txt"
+    $proxytoken = Get-Content -Path "$TokenPath\viprproxytoken.txt"
+    $headers = @{ "X-SDS-AUTH-PROXY-TOKEN"=$proxytoken; "X-SDS-AUTH-TOKEN"=$authtoken; "Accept"="Application/JSON" }
+    
+    $result = try {
+                    $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -ContentType "application/json"
+
+                    $response
+                 }
+              catch{
+
+                Get-ViPRErrorMsg -errordata $result
+
+              }
+    $result
+
+} # end Get-ViprTask
+
+
+#Checks order status until it has a successful or failure state, then returns the order information
+Function Get-ViPRTaskStatus{
+
+<#
+     .DESCRIPTION
+      Takes an Order ID returned from an Order function and looks up the status in a loop until the order has either failed or completed. Returns the final order object.  
+
+      .PARAMETER $ViprIP
+      IP Address or hostname for ViPR Instance
+
+      .PARAMETER $TaskID
+      ID of the task to track
+   
+      .PARAMETER $TokenPath
+      Directory where token files will be stored. These are used for all commands in this module
+
+      .EXAMPLE
+      Get-ViprOrderStatus -ViprIP 10.1.1.20 -OrderID 1a234adflkajaldfj -TokenPath C:\temp\tokens
+
+  #>
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$true)]
+  [string]$ViprIP,
+  [Parameter(Mandatory=$true)]
+  [string]$TaskID,
+  [Parameter(Mandatory=$true)]
+  [string]$TokenPath
+)
+
+     ###Monitor the status, wait until it's no longer running
+    $status = "Pending"
+
+    While($status -eq "Pending" -or $status -eq "pending" -or $status -eq "Execute" -or $status -eq "Executing"){
+      $progress = (Get-ViPRTask -ViprIP $ViprIP -ID $TaskID -TokenPath $TokenPath)
+      $status = $progress.state
+      $summary = $progress.message
+      #$parameters = $progress.parameters
+      $date = Get-Date -Format s
+      Write-Verbose "$date Currently Executing: $summary"
+      Write-Verbose "$date Current Status: $status"
+  
+      Start-Sleep -Seconds 5
+    }
+    
+    ###Get the order, should return all of the things we need including the final status and new resource IDs
+    If($status -eq "FAILED" -or $status -eq "ERROR"){
+        $date = Get-Date -Format s
+        $message = $progress.service_error.description
+		$details = $progress.service_error.details
+        Write-Verbose "$date ERROR: $summary failed for $TaskID"
+        Write-Verbose "$date ERROR: $message"
+		Write-Verbose "DETAILS: $details"
+        Get-ViPRTask -ViprIP $ViprIP -ID $TaskID -TokenPath $TokenPath
+    }
+    else{
+
+    #Return the order, it completed
+    $date = Get-Date -Format s
+    Write-Verbose "$date $summary Completed Successfuly for Task Number $TaskID "
+    Get-ViPRTask -ViprIP $ViprIP -ID $TaskID -TokenPath $TokenPath
+    }
+    
+} # end Get-ViprTaskStatus
+
 ####Helpers####
 
 #Generates Basic Auth base64 header

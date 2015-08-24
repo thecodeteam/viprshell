@@ -84,7 +84,33 @@ Unexport-ViPRSnapshot-Order
 ```
 Unmount-ViPRWindowsVolume-Order
 ```
-
+```
+Search-ViPRHost
+```
+```
+Search-ViPRFilesystem
+```
+```
+New-ViprFilesystem
+```
+```
+New-ViprSMBShare
+```
+```
+Search-ViprVirtualArray
+```
+```
+Search-ViprFileVirtualPool
+```
+```
+Search-ViprProject
+```
+```
+Get-ViprTask
+```
+```
+Get-ViprTaskStatus
+```
 
 ##Support
 Please file bugs and issues at the Github issues page. For more general discussions you can contact the EMC Code team at <https://groups.google.com/forum/#!forum/emccode-users>. The code and 
